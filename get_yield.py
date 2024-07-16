@@ -79,7 +79,7 @@ class TestResult:
                     "tester_to_serial": self.tester_to_serial}
         if filename != "":
             test_args["filename"] = filename
-            return test_map[test](**test_args).get_data()
+            return test_map[test](**test_args).get_reduced_data()
 
 
 class YieldComputer:

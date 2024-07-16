@@ -11,8 +11,8 @@ class Test:
                  name: str = "",
                  filename: str = "",
                  test_result_dir: str = "",
-                 header: int = 0,
-                 index_col: int = None,
+                 header: int | None = 0,
+                 index_col: int | None = None,
                  id_col: str = "chipID",
                  tester_to_serial: dict | None = None) -> None:
         self.name = name
@@ -41,6 +41,76 @@ class Test:
         else:
             raise ValueError("File format not supported")
 
+
+class Pt_1000(Test):
+    def __init__(self,
+                 name: str = "Pt_1000",
+                 filename: str = "pt1000.tsv",
+                 header: int | None = None,
+                 index_col: int | None = None,
+                 id_col: int = 0,
+                 **kwargs) -> None:
+        super().__init__(name=name,
+                         filename=filename,
+                         header=header,
+                         index_col=index_col,
+                         id_col=id_col, **kwargs)
+    
+    def get_reduced_data(self) -> pd.DataFrame:
+        data = self.read_data()
+        rename = {0: "tester_ID", 1: "chipID", 2: "resistance"}
+        data = data.rename(columns=rename)
+        data['SN'] = data['tester_ID'].map(self.tester_to_serial)
+        # resistance needs to be 2.25 < r < 3.75
+        data["pass"] = data["resistance"].apply(lambda x: 2.25 < x < 3.75)
+        return data
+
+
+class Tec(Test):
+    def __init__(self,
+                 name: str = "Tec",
+                 filename: str = "tec.tsv",
+                 header: int | None = None,
+                 index_col: int | None = None,
+                 id_col: int = 0,
+                 **kwargs) -> None:
+        super().__init__(name=name,
+                         filename=filename,
+                         header=header,
+                         index_col=index_col,
+                         id_col=id_col, **kwargs)
+        
+    def get_reduced_data(self) -> pd.DataFrame:
+        data = self.read_data()
+        rename = {0: "tester_ID", 1: "resistance"}
+        data = data.rename(columns=rename)
+        data["SN"] = data["tester_ID"].map(self.tester_to_serial)
+        # resistance needs to be 1.1 < r < 1.5 
+        data["pass"] = data["resistance"].apply(lambda x: 1.1 < x < 1.5)
+        return data
+
+
+class CaPup(Test):
+    def __init__(self,
+                 name: str = "CaPup",
+                 filename: str = "current_after_power_up.tsv",
+                 header: int | None = None,
+                 index_col: int | None = None,
+                 id_col: int = 0,
+                 **kwargs) -> None:
+        super().__init__(name=name,
+                         filename=filename,
+                         header=header,
+                         index_col=index_col,
+                         id_col=id_col, **kwargs)
+        
+    def get_reduced_data(self) -> pd.DataFrame:
+        data = self.read_data()
+        rename = {0: "tester_ID", 1: "current"}
+        data = data.rename(columns=rename)
+        # current limits : 0.75 < c < 0.85
+        data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
+        return data
 
 
 class Aldo(Test):
@@ -421,7 +491,7 @@ class DiscCalibration_3(DiscCalibration):
                 **kwargs):
         super().__init__(name,filename, **kwargs)
     
-    def get_data(self):
+    def get_reduced_data(self):
         data = self.get_data()
         # apply conditions
         conditions = ((data["noise_T1"] < 0.5) &
@@ -433,23 +503,23 @@ class DiscCalibration_3(DiscCalibration):
         data["pass"] = conditions
         
         
-class MergedTest():
+#class MergedTest():
     
-    """
-    Baseclass to represent the tests once they have been merged
+    #"""
+    #Baseclass to represent the tests once they have been merged
     
-    the tests should be able to read the merged testdata from a file.
-    there should be a method to return the yield based on a given criteria
-    """
+    #the tests should be able to read the merged testdata from a file.
+    #there should be a method to return the yield based on a given criteria
+    #"""
 
-    def __init__(self,
-                 name: str | Test,
-                 merged_data: str | Path | pd.DataFrame,) -> None:
-        self.name = name if isinstance(name, str) else name.name
-        if any(isinstance(merged_data, t) for t in [str, Path]):
-            assert Path(merged_data).exists(), f"File {merged_data} not found"
-            self.merged_data = pd.read_csv(merged_data)
-        else:
-            self.merged_data = merged_data
+    #def __init__(self,
+                 #name: str | Test,
+                 #merged_data: str | Path | pd.DataFrame,) -> None:
+        #self.name = name if isinstance(name, str) else name.name
+        #if any(isinstance(merged_data, t) for t in [str, Path]):
+            #assert Path(merged_data).exists(), f"File {merged_data} not found"
+            #self.merged_data = pd.read_csv(merged_data)
+        #else:
+            #self.merged_data = merged_data
             
     
