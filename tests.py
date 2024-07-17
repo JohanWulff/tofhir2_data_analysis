@@ -41,6 +41,14 @@ class Test:
         else:
             raise ValueError("File format not supported")
 
+    
+    def get_passing_info(self):
+        passing_series = self.get_data().groupby("SN")["pass"].all()
+        # create dataframe with "SN"
+        df = passing_series.to_frame().reset_index()
+        df["SN"] = df["SN"].astype(int)
+        return df 
+
 
 class Pt_1000(Test):
     def __init__(self,
@@ -56,7 +64,7 @@ class Pt_1000(Test):
                          index_col=index_col,
                          id_col=id_col, **kwargs)
     
-    def get_reduced_data(self) -> pd.DataFrame:
+    def get_data(self) -> pd.DataFrame:
         data = self.read_data()
         rename = {0: "tester_ID", 1: "chipID", 2: "resistance"}
         data = data.rename(columns=rename)
@@ -80,7 +88,7 @@ class Tec(Test):
                          index_col=index_col,
                          id_col=id_col, **kwargs)
         
-    def get_reduced_data(self) -> pd.DataFrame:
+    def get_data(self) -> pd.DataFrame:
         data = self.read_data()
         rename = {0: "tester_ID", 1: "resistance"}
         data = data.rename(columns=rename)
@@ -104,7 +112,7 @@ class CaPup(Test):
                          index_col=index_col,
                          id_col=id_col, **kwargs)
         
-    def get_reduced_data(self) -> pd.DataFrame:
+    def get_data(self) -> pd.DataFrame:
         data = self.read_data()
         rename = {0: "tester_ID", 1: "current"}
         data = data.rename(columns=rename)
@@ -146,12 +154,7 @@ class Aldo(Test):
         rename = {0: "tester_ID", 1: "asic_id", 2: "side", 3: "gain",
                 4: "DAC", 5: "Vout", 6: "current"}
         data = data.rename(columns=rename)
-        data["SN"] = data["tester_ID"].apply(lambda x: self.tester_to_serial[x])
-        return data
-
-
-    def get_reduced_data(self):
-        data = self.get_data()
+        data["SN"] = data["tester_ID"].apply(lambda x: int(self.tester_to_serial[x]))
 
         def process_group(group):
             # Ensure DAC < 250
@@ -193,6 +196,8 @@ class Aldo(Test):
 
         reduced_df["pass"] = result.reset_index(level=0, drop=True)
         return reduced_df
+
+    
 
 class DiscCalibration(Test):
     """
@@ -265,10 +270,7 @@ class TDCCalibration(Test):
         data["SN"] = data[self.id_col].apply(lambda x: self.tester_to_serial[x // 2])
         keeps = ["SN", self.id_col, "channelID", "tacID",
                  "branch", "t0", *[f"a{i}" for i in range(0,3)], "sigma"]
-        return data[keeps]
-
-    def get_reduced_data(self):
-        data = self.get_data()
+        data = data[keeps]
         # apply conditions
         conditions = (data["sigma"] < 62.5 / 6250) & (data["a1"] > 440) & (1.5*data["a1"] + data["a0"] < 1000)
         data["pass"] = conditions
@@ -344,10 +346,7 @@ class QDCCalibration(Test):
         # add SN
         data["SN"] = data[self.id_col].apply(lambda x: self.tester_to_serial[x // 2])
         keeps = ["SN", self.id_col, "trim",*[f"p{i}" for i in range(0, 4)], "sigma"]
-        return data[keeps]
-    
-    def get_reduced_data(self):
-        data = self.get_data()
+        data = data[keeps]
         # apply conditions
         conditions = (data["p0"] < 100) & (data["p1"] > -2) & (data["p1"] < 15)
         data["pass"] = conditions
@@ -430,14 +429,14 @@ class DiscCalibration_0(DiscCalibration):
                 **kwargs):
         super().__init__(name,filename, **kwargs)
     
-    def get_reduced_data(self):
-        data = self.get_data()
+    def get_data(self):
+        data = super().get_data()
         # apply conditions
         conditions = ((data["noise_T1"] < 2) &
                      (data["noise_T2"] < 1) &
                      (data["noise_E"] < 0.6) &
-                     (0 < data["zero_T1"] < 100) &
-                     (0 < data["zero_T2"] < 50) &
+                     ((0 < data["zero_T1"]) & ( data["zero_T1"] < 100)) &
+                     ((0 < data["zero_T2"]) & ( data["zero_T2"] < 50)) &
                      (data["zero_E"] < 16))
         data["pass"] = conditions
         return data
@@ -451,14 +450,14 @@ class DiscCalibration_1(DiscCalibration):
                 **kwargs):
         super().__init__(name,filename, **kwargs)
 
-    def get_reduced_data(self):
-        data = self.get_data()
+    def get_data(self):
+        data = super().get_data()
         # apply conditions
         conditions = ((data["noise_T1"] < 1) &
                      (data["noise_T2"] < 0.5) &
                      (data["noise_E"] < 0.3) &
-                     (0 < data["zero_T1"] < 50) &
-                     (0 < data["zero_T2"] < 25) &
+                     ((0 < data["zero_T1"]) & ( data["zero_T1"] < 50)) &
+                     ((0 < data["zero_T2"]) & ( data["zero_T2"] < 25)) &
                      (data["zero_E"] < 8))
         data["pass"] = conditions
         return data
@@ -471,14 +470,14 @@ class DiscCalibration_2(DiscCalibration):
                 **kwargs):
         super().__init__(name,filename, **kwargs)
 
-    def get_reduced_data(self):
-        data = self.get_data()
+    def get_data(self):
+        data = super().get_data()
         # apply conditions
         conditions = ((data["noise_T1"] < 0.67) &
                      (data["noise_T2"] < 0.33) &
                      (data["noise_E"] < 0.3) &
-                     (0 < data["zero_T1"] < 33) &
-                     (0 < data["zero_T2"] < 17) &
+                     (( 0 < data["zero_T1"] ) & ( data["zero_T1"] < 33 )) &
+                     (( 0 < data["zero_T2"] ) & ( data["zero_T2"] < 17 )) &
                      (data["zero_E"] < 5))
         data["pass"] = conditions
         return data
@@ -491,16 +490,17 @@ class DiscCalibration_3(DiscCalibration):
                 **kwargs):
         super().__init__(name,filename, **kwargs)
     
-    def get_reduced_data(self):
-        data = self.get_data()
+    def get_data(self):
+        data = super().get_data()
         # apply conditions
         conditions = ((data["noise_T1"] < 0.5) &
                         (data["noise_T2"] < 0.25) &
                         (data["noise_E"] < 0.3) &
-                        (0 < data["zero_T1"] < 25) &
-                        (0 < data["zero_T2"] < 13) &
+                        (( 0 < data["zero_T1"] ) & ( data["zero_T1"] < 25 )) &
+                        (( 0 < data["zero_T2"] ) & ( data["zero_T2"] < 13 )) &
                         (data["zero_E"] < 4))
         data["pass"] = conditions
+        return data
         
         
 #class MergedTest():
