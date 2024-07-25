@@ -114,12 +114,11 @@ def plot_disc_calibration(data: pd.DataFrame,
                           savepath: str = "") -> None:
     plots = ["noise", "zero"]
     for p in plots:
-        plot_cols = ["T1", "T2", "E"]
-        plot_cols = [f"{p}_{col}" for col in plot_cols]
+        plot_cols = [f"{p}_{col}" for col in ["T1", "T2", "E"]]
         fig, ax = plt.subplots()
         for col in plot_cols:
             ax.plot(
-                data["channelID"], data[f"{col}"], '.', label=col.split("_")[3])
+                data["channelID"], data[f"{col}"], '.', label=col.split("_")[-1])
         ax.set_xlabel("Channel ID")
         ax.set_ylabel("DAC Units")
         plt.grid(alpha=0.3)
@@ -131,3 +130,8 @@ def plot_disc_calibration(data: pd.DataFrame,
             plt.close()
         else:
             plt.show()
+
+        
+def plot_pt_1000(data:pd.DataFrame,
+                 savepath: str = "") -> None:
+    

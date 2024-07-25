@@ -116,8 +116,32 @@ class CaPup(Test):
         data = self.read_data()
         rename = {0: "tester_ID", 1: "current"}
         data = data.rename(columns=rename)
+        data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # current limits : 0.75 < c < 0.85
         data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
+        return data
+    
+class CaInit(Test):
+    def __init__(self,
+                 name: str = "CaInit",
+                 filename: str = "current_after_init.tsv",
+                 header: int | None = None,
+                 index_col: int | None = None,
+                 id_col: int = 0,
+                 **kwargs) -> None:
+        super().__init__(name=name,
+                         filename=filename,
+                         header=header,
+                         index_col=index_col,
+                         id_col=id_col, **kwargs)
+    
+    def get_data(self) -> pd.DataFrame:
+        data = self.read_data()
+        rename = {0: "tester_ID", 1: "current"}
+        data = data.rename(columns=rename)
+        data["SN"] = data["tester_ID"].map(self.tester_to_serial)
+        # current limits : 0.75 < c < 0.85
+        #data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
         return data
 
 

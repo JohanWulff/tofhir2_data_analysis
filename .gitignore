@@ -1,3 +1,4 @@
-*.ipynb
+*.pdf
+*.png
 __pycache__/
 plots/
