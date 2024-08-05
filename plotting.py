@@ -41,7 +41,7 @@ def plot_tdc(data: pd.DataFrame,
             plt.savefig( f"{savepath}/tdc_{col}.pdf")
             plt.close()
         else:
-            plt.show()
+            return fig 
 
 
 
@@ -129,9 +129,9 @@ def plot_disc_calibration(data: pd.DataFrame,
             plt.savefig( f"{savepath}/disc_calibration_{p}.pdf")
             plt.close()
         else:
-            plt.show()
+            return fig
 
         
-def plot_pt_1000(data:pd.DataFrame,
-                 savepath: str = "") -> None:
+#def plot_pt_1000(data:pd.DataFrame,
+                 #savepath: str = "") -> None:
     

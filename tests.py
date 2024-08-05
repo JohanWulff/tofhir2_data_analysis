@@ -141,7 +141,7 @@ class CaInit(Test):
         data = data.rename(columns=rename)
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # current limits : 0.75 < c < 0.85
-        #data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
+        data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
         return data
 
 
