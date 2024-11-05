@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from pathlib import Path 
 
 from tests import *
@@ -133,8 +134,14 @@ class YieldComputer:
 
 
     def get_yield_data(self):
-        return pd.concat([self.merge_dataframes_for_test(test).rename(columns={"pass": f"{test}_pass"})
-                          for test in self.tests], axis=1)
+        result = []
+        for test in self.tests:
+            try:
+                result.append(self.merge_dataframes_for_test(test).rename(columns={"pass": f"{test}_pass"}))
+            except Exception as e:
+                print(f"Error in test {test}: {e}")
+                continue
+        return pd.concat(result, axis=1)
 
 
 class Plotter:
@@ -181,16 +188,21 @@ def make_parser():
                         default="/eos/user/a/aboletti/TOFHIR2C_validation/tmp_calibration_data/",
                         help="Base directory for the test results")
     parser.add_argument("--tests",
-                        ype=str,
+                        type=str,
                         nargs="+",
-                        required=True,
+                        required=False,
                         default=[test for test in test_map.keys()],
                         help="Tests to be considered")
+    parser.add_argument("--output_dir",
+                        type=str,
+                        default="output",
+                        help="Output directory")
     return parser
 
 
 def main(base_dir: str,
-         tests: list[str]):
+         tests: list[str],
+         output_dir: str = "output"):
     test_result_dirs = [d for d in Path(base_dir).glob("2024*") if d.is_dir()]
     # assert that the dirs are sorted by their timestamps (yyyymmddhhmm)
     test_result_dirs = sorted(test_result_dirs, key=lambda x: int(x.stem))
@@ -211,12 +223,16 @@ def main(base_dir: str,
     # add link col
     # yield_df["link"] = yield_df.index.map(lambda x: f"http://localhost:8501/board_{x:04d}")
     yield_df.sort_index(inplace=True)
-    yield_df.to_csv("yield.csv")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    yield_df.to_csv(f"{output_dir}/yield.csv")
 
     plotter = Plotter(tests=tests, base_dir=base_dir)
     merged_dfs = {test: plotter.merge_dataframes_for_test(test) for test in plotter.tests}
     for test, df in merged_dfs.items():
-        df.to_csv(f"{test}.csv")
+        if not os.path.exists(f"{output_dir}/testdata"):
+            os.makedirs(f"{output_dir}/testdata")
+        df.to_csv(f"{output_dir}/testdata/{test}.csv")
     
 
 if __name__ == "__main__":
