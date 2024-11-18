@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 import os
 from pathlib import Path 
 
@@ -59,12 +60,18 @@ class TestResult:
             if not datafile.exists(): 
                 raise FileNotFoundError(f"File {datafile} not found in {self.path}")
 
-        self.serial_files = [f for f in Path(self.path).rglob('SN_3*.txt')]
+        self.sn_regex = re.compile(r"SN_3211[\s_]0[\s_]03[\s_]0[\s_]00[\s_]([\d]+)\.txt")
+        self.serial_files = [f for f in Path(self.path).rglob('SN_3211*.txt')]
+        # make sure that the last split has numbers in front of the stem
+        self.serial_files = [f for f in self.serial_files if self.sn_regex.match(f.name)]
         assert len(self.serial_files) > 0, "No serial files found in the directory"
 
         self.tester_to_serial = {}
         for f in self.serial_files: 
-            sn = int(f.stem.split(" ")[-1])
+            if " " in f.stem:
+                sn = int(f.stem.split(" ")[-1])
+            else:
+                sn = int(f.stem.split("_")[-1])
             with open(f, "r") as file:
                 tester = int(file.read().strip())
             self.tester_to_serial[tester] = sn
@@ -109,6 +116,9 @@ class YieldComputer:
     def get_test_result_dirs(self,
                              base_dir: str):
         test_result_dirs = [d for d in Path(self.base_dir).glob("2024*") if d.is_dir()]
+        test_result_dirs = sorted(test_result_dirs, key=lambda x: int((x.stem).strip("_")))
+        # filter out the dirs that do not contain a file called "detailed_results.tsv"
+        test_result_dirs = [d for d in test_result_dirs if (d / "detailed_results.tsv").exists()]
         return sorted(test_result_dirs, key=lambda x: int(x.stem))
 
 
@@ -118,6 +128,7 @@ class YieldComputer:
         merged_dataframe = pd.DataFrame()
         skipped = []
         for d in test_result_dirs:
+            print(d)
             try: 
                 tr = TestResult(path=d)
             except FileNotFoundError as e:
@@ -136,11 +147,7 @@ class YieldComputer:
     def get_yield_data(self):
         result = []
         for test in self.tests:
-            try:
-                result.append(self.merge_dataframes_for_test(test).rename(columns={"pass": f"{test}_pass"}))
-            except Exception as e:
-                print(f"Error in test {test}: {e}")
-                continue
+            result.append(self.merge_dataframes_for_test(test).rename(columns={"pass": f"{test}_pass"}))
         return pd.concat(result, axis=1)
 
 
@@ -156,6 +163,11 @@ class Plotter:
     def get_test_result_dirs(self,
                              base_dir: str):
         test_result_dirs = [d for d in Path(self.base_dir).glob("2024*") if d.is_dir()]
+        test_result_dirs = sorted(test_result_dirs, key=lambda x: int((x.stem).strip("_")))
+        # filter out the dirs that do not contain a file called "detailed_results.tsv"
+        test_result_dirs = [d for d in test_result_dirs if (d / "detailed_results.tsv").exists()]
+        # filter out all dirs for which we cannot match 8 SN files
+        
         return sorted(test_result_dirs, key=lambda x: int(x.stem))
 
 
@@ -205,17 +217,12 @@ def main(base_dir: str,
          output_dir: str = "output"):
     test_result_dirs = [d for d in Path(base_dir).glob("2024*") if d.is_dir()]
     # assert that the dirs are sorted by their timestamps (yyyymmddhhmm)
-    test_result_dirs = sorted(test_result_dirs, key=lambda x: int(x.stem))
-    test_result_dirs
-
-    trs = []
-    for d in test_result_dirs:
-        try:
-            tr = TestResult(d)
-            trs.append(tr)
-        except FileNotFoundError as e:
-            print(e)
-            continue
+    test_result_dirs = sorted(test_result_dirs, key=lambda x: int((x.stem).strip("_")))
+    # filter out the dirs that do not contain a file called "detailed_results.tsv"
+    test_result_dirs = [d for d in test_result_dirs if (d / "detailed_results.tsv").exists()]
+    sn_regex = re.compile(r"SN_3211[\s_]0[\s_]03[\s_]0[\s_]00[\s_]([\d]+)\.txt")
+    test_result_dirs = [d for d in test_result_dirs if
+                        len(sn_regex.findall("".join([str(p) for p in Path(d).rglob("SN_3211*.txt")]))) == 8]
 
     yc = YieldComputer(tests=tests, base_dir=base_dir)
 
