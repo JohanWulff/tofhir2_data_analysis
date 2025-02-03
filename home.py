@@ -131,7 +131,7 @@ from pathlib import Path
 #
 #
 #    def get_yield_data(self):
-#        return pd.concat([self.merge_dataframes_for_test(test).rename(columns={"pass": f"{test}_pass"})
+#        return pd.concat([self.merge_dataframes_for_test(test).rename(columns={"test_pass": f"{test}_pass"})
 #                          for test in self.tests], axis=1)
 #
 #
@@ -226,7 +226,7 @@ st.dataframe(yield_map_df)
 
 st.subheader("Overall Yield")
 
-test_yield_df = yield_df[[col for col in yield_df if col.endswith("pass")]]
+test_yield_df = yield_df[[col for col in yield_df if col.endswith("test_pass")]]
 total_yield = (test_yield_df.sum(axis=1) == len(test_yield_df.columns)).sum()/len(test_yield_df)
 
 st.write(f"Overall yield: {total_yield:.2%}")

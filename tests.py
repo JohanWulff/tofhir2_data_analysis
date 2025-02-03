@@ -43,7 +43,7 @@ class Test:
 
     
     def get_passing_info(self):
-        passing_series = self.get_data().groupby("SN")["pass"].all()
+        passing_series = self.get_data().groupby("SN")["test_pass"].all()
         # create dataframe with "SN"
         df = passing_series.to_frame().reset_index()
         df["SN"] = df["SN"].astype(int)
@@ -70,7 +70,7 @@ class Pt_1000(Test):
         data = data.rename(columns=rename)
         data['SN'] = data['tester_ID'].map(self.tester_to_serial)
         # resistance needs to be 2.25 < r < 3.75
-        data["pass"] = data["resistance"].apply(lambda x: 2.25 < x < 3.75)
+        data["test_pass"] = data["resistance"].apply(lambda x: 2.25 < x < 3.75)
         return data
 
 
@@ -94,7 +94,7 @@ class Tec(Test):
         data = data.rename(columns=rename)
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # resistance needs to be 1.1 < r < 1.5 
-        data["pass"] = data["resistance"].apply(lambda x: 1.1 < x < 1.5)
+        data["test_pass"] = data["resistance"].apply(lambda x: 1.1 < x < 1.5)
         return data
 
 
@@ -118,7 +118,7 @@ class CaPup(Test):
         data = data.rename(columns=rename)
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # current limits : 0.75 < c < 0.85
-        data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
+        data["test_pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
         return data
     
 class CaInit(Test):
@@ -141,7 +141,7 @@ class CaInit(Test):
         data = data.rename(columns=rename)
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # current limits : 0.75 < c < 0.85
-        data["pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
+        data["test_pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
         return data
 
 
@@ -218,7 +218,7 @@ class Aldo(Test):
         # Group the DataFrame by "gain" and apply the conditions
         result = reduced_df.groupby("gain")[["slope", "b", "max_inl"]].apply(apply_conditions, aldo_limits=aldo_limits)
 
-        reduced_df["pass"] = result.reset_index(level=0, drop=True)
+        reduced_df["test_pass"] = result.reset_index(level=0, drop=True)
         return reduced_df
 
     
@@ -297,7 +297,7 @@ class TDCCalibration(Test):
         data = data[keeps]
         # apply conditions
         conditions = (data["sigma"] < 62.5 / 6250) & (data["a1"] > 440) & (1.5*data["a1"] + data["a0"] < 1000)
-        data["pass"] = conditions
+        data["test_pass"] = conditions
         return data
 
         
@@ -373,7 +373,7 @@ class QDCCalibration(Test):
         data = data[keeps]
         # apply conditions
         conditions = (data["p0"] < 100) & (data["p1"] > -2) & (data["p1"] < 15)
-        data["pass"] = conditions
+        data["test_pass"] = conditions
         return data
     
 # qdc calibration has 8 settings
@@ -462,7 +462,7 @@ class DiscCalibration_0(DiscCalibration):
                      ((0 < data["zero_T1"]) & ( data["zero_T1"] < 100)) &
                      ((0 < data["zero_T2"]) & ( data["zero_T2"] < 50)) &
                      (data["zero_E"] < 16))
-        data["pass"] = conditions
+        data["test_pass"] = conditions
         return data
 
 
@@ -483,7 +483,7 @@ class DiscCalibration_1(DiscCalibration):
                      ((0 < data["zero_T1"]) & ( data["zero_T1"] < 50)) &
                      ((0 < data["zero_T2"]) & ( data["zero_T2"] < 25)) &
                      (data["zero_E"] < 8))
-        data["pass"] = conditions
+        data["test_pass"] = conditions
         return data
         
 class DiscCalibration_2(DiscCalibration):
@@ -503,7 +503,7 @@ class DiscCalibration_2(DiscCalibration):
                      (( 0 < data["zero_T1"] ) & ( data["zero_T1"] < 33 )) &
                      (( 0 < data["zero_T2"] ) & ( data["zero_T2"] < 17 )) &
                      (data["zero_E"] < 5))
-        data["pass"] = conditions
+        data["test_pass"] = conditions
         return data
 
 class DiscCalibration_3(DiscCalibration):
@@ -523,7 +523,7 @@ class DiscCalibration_3(DiscCalibration):
                         (( 0 < data["zero_T1"] ) & ( data["zero_T1"] < 25 )) &
                         (( 0 < data["zero_T2"] ) & ( data["zero_T2"] < 13 )) &
                         (data["zero_E"] < 4))
-        data["pass"] = conditions
+        data["test_pass"] = conditions
         return data
         
         
