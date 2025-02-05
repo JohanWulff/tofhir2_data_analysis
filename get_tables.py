@@ -229,15 +229,16 @@ def main(base_dir: str,
          tests: list[str],
          output_dir: str = "output"):
     
-    #    yc = YieldComputer(tests=tests, base_dir=base_dir)
-    #
-    #    yield_df = yc.get_yield_data()
-    #    # add link col
-    #    # yield_df["link"] = yield_df.index.map(lambda x: f"http://localhost:8501/board_{x:04d}")
-    #    yield_df.sort_index(inplace=True)
-    #    if not os.path.exists(output_dir):
-    #        os.makedirs(output_dir)
-    #    yield_df.to_csv(f"{output_dir}/yield.csv")
+    # exclude testpulse and exttestpulse from the yield data
+    yield_tests = [test for test in tests if test not in ["TestPulse", "ExtTestPulse"]]
+    yc = YieldComputer(tests=yield_tests, base_dir=base_dir)
+    yield_df = yc.get_yield_data()
+    # add link col
+    # yield_df["link"] = yield_df.index.map(lambda x: f"http://localhost:8501/board_{x:04d}")
+    yield_df.sort_index(inplace=True)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    yield_df.to_csv(f"{output_dir}/yield.csv")
 
     # check if some tests are already in the output directory
     # if so, don't process them again (if overwrite is False)
