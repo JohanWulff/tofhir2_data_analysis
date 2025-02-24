@@ -1,4 +1,3 @@
-
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -68,6 +67,11 @@ class Pt_1000(Test):
         data = self.read_data()
         rename = {0: "tester_ID", 1: "chipID", 2: "resistance"}
         data = data.rename(columns=rename)
+        # raise an error if the tester_ID is not in the dictionary
+        if not all(data["tester_ID"].isin(self.tester_to_serial)):
+            print(f"Tester ID's in the data: {data['tester_ID'].unique()}")
+            print(f"Tester iD's in the dictionary: {sorted(self.tester_to_serial.keys())}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         data['SN'] = data['tester_ID'].map(self.tester_to_serial)
         # resistance needs to be 2.25 < r < 3.75
         data["test_pass"] = data["resistance"].apply(lambda x: 2.25 < x < 3.75)
@@ -92,6 +96,11 @@ class Tec(Test):
         data = self.read_data()
         rename = {0: "tester_ID", 1: "resistance"}
         data = data.rename(columns=rename)
+        # raise an error if the tester_ID is not in the dictionary
+        if not all(data["tester_ID"].isin(self.tester_to_serial)):
+            print(f"Tester ID's in the data: {data['tester_ID'].unique()}")
+            print(f"Tester iD's in the dictionary: {sorted(self.tester_to_serial.keys())}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # resistance needs to be 1.1 < r < 1.5 
         data["test_pass"] = data["resistance"].apply(lambda x: 1.1 < x < 1.5)
@@ -116,6 +125,11 @@ class CaPup(Test):
         data = self.read_data()
         rename = {0: "tester_ID", 1: "current"}
         data = data.rename(columns=rename)
+        # raise an error if the tester_ID is not in the dictionary
+        if not all(data["tester_ID"].isin(self.tester_to_serial)):
+            print(f"Tester ID's in the data: {data['tester_ID'].unique()}")
+            print(f"Tester iD's in the dictionary: {sorted(self.tester_to_serial.keys())}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # current limits : 0.75 < c < 0.85
         data["test_pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
@@ -139,6 +153,11 @@ class CaInit(Test):
         data = self.read_data()
         rename = {0: "tester_ID", 1: "current"}
         data = data.rename(columns=rename)
+        # raise an error if the tester_ID is not in the dictionary
+        if not all(data["tester_ID"].isin(self.tester_to_serial)):
+            print(f"Tester ID's in the data: {data['tester_ID'].unique()}")
+            print(f"Tester iD's in the dictionary: {sorted(self.tester_to_serial.keys())}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         data["SN"] = data["tester_ID"].map(self.tester_to_serial)
         # current limits : 0.75 < c < 0.85
         data["test_pass"] = data["current"].map(lambda x: 0.75 < x < 0.85)
@@ -146,18 +165,6 @@ class CaInit(Test):
 
 
 class Aldo(Test):
-    
-    """
-    gain = (220 + 5.11)/5.11
-    if aldo_range == 0: # aldo is gain in my case
-        slope_limits = (gain * 0.000445, gain * 0.000485)
-        b_limits = (34, gain*0.86)
-        inl_limits = (0, 5)
-    else:
-        slope_limits = (gain * 0.00089, gain * 0.00096)
-        b_limits = (31, gain * 0.77)
-        inl_limits = (0, 8)
-    """
     def __init__(self,
                  name: str = "aldo",
                  filename: str = "aldo.tsv",
@@ -170,14 +177,18 @@ class Aldo(Test):
                          header=header,
                          index_col=index_col,
                          id_col=id_col,
-                            **kwargs)
-
+                         **kwargs)
 
     def get_data(self):
         data = self.read_data()
         rename = {0: "tester_ID", 1: "asic_id", 2: "side", 3: "gain",
-                4: "DAC", 5: "Vout", 6: "current"}
+                  4: "DAC", 5: "Vout", 6: "current"}
         data = data.rename(columns=rename)
+        # raise an error if the tester_ID is not in the dictionary
+        if not all(data["tester_ID"].isin(self.tester_to_serial)):
+            print(f"Tester ID's in the data: {data['tester_ID'].unique()}")
+            print(f"Tester iD's in the dictionary: {sorted(self.tester_to_serial.keys())}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         data["SN"] = data["tester_ID"].apply(lambda x: int(self.tester_to_serial[x]))
 
         def process_group(group):
@@ -191,16 +202,16 @@ class Aldo(Test):
             return pd.Series([slope, b, max_inl, SN], index=['slope', 'b', 'max_inl', 'SN'])
 
         groupby = data.groupby(['tester_ID', 'asic_id', 'side', 'gain'])
-        reduced_df = groupby[data.columns.tolist()].apply(process_group).reset_index()
+        reduced_df = groupby.apply(process_group).reset_index()
 
+        gain = (220 + 5.11) / 5.11
+        aldo_limits = {0: {"slope": (gain * 0.000445, gain * 0.000485),
+                           "b": (34, gain * 0.86),
+                           "inl": (0, 5)},
+                       1: {"slope": (gain * 0.00089, gain * 0.00096),
+                           "b": (31, gain * 0.77),
+                           "inl": (0, 8)}}
 
-        gain = (220 + 5.11)/5.11
-        aldo_limits = {0: {"slope": (gain*0.000445,gain*0.000485),
-                            "b": (34, gain*0.86),
-                            "inl": (0, 5)},
-                        1: {"slope": (gain*0.00089, gain*0.00096),
-                            "b": (31, gain*0.77),
-                            "inl": (0, 8)}}
         def apply_conditions(group, aldo_limits):
             # Extract the limits for the current "gain" value from the group name
             limits = aldo_limits[group.name]
@@ -219,9 +230,12 @@ class Aldo(Test):
         result = reduced_df.groupby("gain")[["slope", "b", "max_inl"]].apply(apply_conditions, aldo_limits=aldo_limits)
 
         reduced_df["test_pass"] = result.reset_index(level=0, drop=True)
-        return reduced_df
 
-    
+        # Merge the reduced DataFrame with the original data
+        merged_df = pd.merge(data, reduced_df, on=['tester_ID', 'asic_id', 'side', 'gain', 'SN'], how='left')
+
+        return merged_df
+
 
 class DiscCalibration(Test):
     """
@@ -257,6 +271,12 @@ class DiscCalibration(Test):
 
     def get_data(self):
         data = self.read_data()
+        # raise an error if the tester_ID is not in the dictionary
+        unique_testers = (data[self.id_col] // 2).unique()
+        if any([tester not in self.tester_to_serial for tester in unique_testers]):
+            print(f"Tester ID's in the data: {unique_testers}")
+            print(f"Tester iD's in the dictionary: {list(sorted(self.tester_to_serial.keys()))}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         # add SN 
         data["SN"] = data[self.id_col].apply(lambda x: self.tester_to_serial[x // 2])
         keeps = ["SN", self.id_col, "channelID",
@@ -290,6 +310,12 @@ class TDCCalibration(Test):
         
     def get_data(self):
         data = self.read_data()
+        # raise an error if the tester_ID is not in the dictionary
+        unique_testers = (data[self.id_col] // 2).unique()
+        if any([tester not in self.tester_to_serial for tester in unique_testers]):
+            print(f"Tester ID's in the data: {unique_testers}")
+            print(f"Tester iD's in the dictionary: {list(sorted(self.tester_to_serial.keys()))}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         # add asic_id
         data["SN"] = data[self.id_col].apply(lambda x: self.tester_to_serial[x // 2])
         keeps = ["SN", self.id_col, "channelID", "tacID",
@@ -318,6 +344,12 @@ class TestPulse(Test):
 
     def get_data(self):
         data = self.read_data()
+        # raise an error if the tester_ID is not in the dictionary
+        unique_testers = (data[self.id_col] // 2).unique()
+        if any([tester not in self.tester_to_serial for tester in unique_testers]):
+            print(f"Tester ID's in the data: {unique_testers}")
+            print(f"Tester iD's in the dictionary: {list(sorted(self.tester_to_serial.keys()))}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         # add SN
         data["SN"] = data[self.id_col].apply(lambda x: self.tester_to_serial[x // 2])
         keeps = ["SN", self.id_col, 1, 2, 3, 4, 5] 
@@ -367,6 +399,12 @@ class QDCCalibration(Test):
             print("Fixing QDC data")
             cols = [*[c.replace("# ", "") for c in data.columns[:-1]], 'p9', 'sigma']
             data = pd.read_csv(self.datafile, sep="\t", header=None, skiprows=1, names=cols)
+        # raise an error if the tester_ID is not in the dictionary
+        unique_testers = (data[self.id_col] // 2).unique()
+        if any([tester not in self.tester_to_serial for tester in unique_testers]):
+            print(f"Tester ID's in the data: {unique_testers}")
+            print(f"Tester iD's in the dictionary: {list(sorted(self.tester_to_serial.keys()))}")
+            raise ValueError("Some Tester ID's present in data couldn't be assigned a serial file")
         # add SN
         data["SN"] = data[self.id_col].apply(lambda x: self.tester_to_serial[x // 2])
         keeps = ["SN", self.id_col, "trim",*[f"p{i}" for i in range(0, 4)], "sigma"]
@@ -545,5 +583,4 @@ class DiscCalibration_3(DiscCalibration):
             #self.merged_data = pd.read_csv(merged_data)
         #else:
             #self.merged_data = merged_data
-            
-    
+

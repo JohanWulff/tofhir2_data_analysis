@@ -1,5 +1,7 @@
 *.pdf
 *.png
 *.csv
+*.h5
+*.pkl
 __pycache__/
 plots/
